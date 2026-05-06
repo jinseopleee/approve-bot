@@ -10,11 +10,22 @@
 - Rust 1.70+
 - [GitHub CLI (`gh`)](https://cli.github.com/) — `gh auth login` 으로 로그인되어 있어야 함
 
-## 개발 실행
+## 실행
+
+처음 clone 받은 뒤 production 모드로:
 
 ```bash
-npm install
-npm run tauri dev
+pnpm install
+pnpm start
+```
+
+- 첫 실행은 Rust release 빌드라 5–10분 정도 걸릴 수 있음. 이후는 캐시되어 빠름.
+- 빌드 결과물: `src-tauri/target/release/bundle/macos/Approve Bot.app`
+
+개발 중 핫리로드가 필요할 때:
+
+```bash
+pnpm tauri dev
 ```
 
 ## 동작 개요

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start": "tauri build && open 'src-tauri/target/release/bundle/macos/Approve Bot.app'",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri"
