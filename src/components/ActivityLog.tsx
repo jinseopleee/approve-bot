@@ -35,40 +35,59 @@ export function ActivityLog() {
         {entries.length === 0 && (
           <div className="muted">No activity yet. Polling will report results here.</div>
         )}
-        {entries.map((e, i) => (
-          <div className={`entry ${e.kind}`} key={`${e.timestamp}-${i}`}>
-            <span className="time">{formatTime(e.timestamp)}</span>
-            <span>
-              <b>{labelFor(e)}</b>
-              {e.repo && (
-                <>
-                  {" "}
-                  <span className="muted">in</span> {e.repo}
-                  {e.pr_number != null && <> #{e.pr_number}</>}
-                </>
+        {entries.map((e, i) => {
+          const inlineLink = e.kind === "approved" && e.url && e.repo;
+          return (
+            <div className={`entry ${e.kind}`} key={`${e.timestamp}-${i}`}>
+              <span className="time">{formatTime(e.timestamp)}</span>
+              <span>
+                <b>{labelFor(e)}</b>
+                {e.repo && (
+                  <>
+                    {" "}
+                    <span className="muted">in</span>{" "}
+                    {inlineLink ? (
+                      <a
+                        href={e.url!}
+                        onClick={(ev) => {
+                          ev.preventDefault();
+                          openExternal(e.url!).catch(() => {});
+                        }}
+                      >
+                        {e.repo}
+                        {e.pr_number != null && <> #{e.pr_number}</>}
+                      </a>
+                    ) : (
+                      <>
+                        {e.repo}
+                        {e.pr_number != null && <> #{e.pr_number}</>}
+                      </>
+                    )}
+                  </>
+                )}
+                {e.author && (
+                  <>
+                    {" "}
+                    <span className="muted">by</span> @{e.author}
+                  </>
+                )}
+                {e.pr_title && <div className="muted">{e.pr_title}</div>}
+                <div className="muted">{e.message}</div>
+              </span>
+              {e.url && !inlineLink && (
+                <a
+                  href={e.url}
+                  onClick={(ev) => {
+                    ev.preventDefault();
+                    openExternal(e.url!).catch(() => {});
+                  }}
+                >
+                  Open
+                </a>
               )}
-              {e.author && (
-                <>
-                  {" "}
-                  <span className="muted">by</span> @{e.author}
-                </>
-              )}
-              {e.pr_title && <div className="muted">{e.pr_title}</div>}
-              <div className="muted">{e.message}</div>
-            </span>
-            {e.url && (
-              <a
-                href={e.url}
-                onClick={(ev) => {
-                  ev.preventDefault();
-                  openExternal(e.url!).catch(() => {});
-                }}
-              >
-                Open
-              </a>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
