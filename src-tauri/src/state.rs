@@ -60,6 +60,7 @@ pub struct AppState {
     pub status: Mutex<ConnectionStatus>,
     pub activity: Mutex<VecDeque<ActivityEntry>>,
     pub poll_signal: Notify,
+    pub gh_login_busy: Mutex<bool>,
 }
 
 impl AppState {
@@ -72,6 +73,7 @@ impl AppState {
             status: Mutex::new(ConnectionStatus::disconnected("not yet connected")),
             activity: Mutex::new(VecDeque::with_capacity(MAX_LOG)),
             poll_signal: Notify::new(),
+            gh_login_busy: Mutex::new(false),
         })
     }
 

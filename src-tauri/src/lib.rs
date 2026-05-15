@@ -1,6 +1,7 @@
 mod auth;
 mod commands;
 mod config;
+mod gh_login;
 mod github;
 mod poller;
 mod state;
@@ -49,6 +50,7 @@ pub fn run() {
             commands::get_activity_log,
             commands::force_check_now,
             commands::search_users,
+            commands::start_gh_login,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

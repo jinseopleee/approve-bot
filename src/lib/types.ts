@@ -33,3 +33,9 @@ export interface ActivityEntry {
   url: string | null;
   message: string;
 }
+
+export type GhLoginProgress =
+  | { kind: "started" }
+  | { kind: "code"; code: string }
+  | { kind: "done" }
+  | { kind: "failed"; message: string };

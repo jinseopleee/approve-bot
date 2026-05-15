@@ -53,6 +53,18 @@ pub async fn force_check_now(state: State<'_, Arc<AppState>>) -> Result<(), Stri
 }
 
 #[tauri::command]
+pub async fn start_gh_login(
+    app: AppHandle,
+    state: State<'_, Arc<AppState>>,
+) -> Result<(), String> {
+    let state = Arc::clone(state.inner());
+    tauri::async_runtime::spawn(async move {
+        let _ = crate::gh_login::start(app, state).await;
+    });
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn search_users(
     state: State<'_, Arc<AppState>>,
     query: String,

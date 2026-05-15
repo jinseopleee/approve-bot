@@ -5,11 +5,13 @@ import type {
   ActivityEntry,
   AppConfig,
   ConnectionStatus,
+  GhLoginProgress,
   GhUserHint,
 } from "./types";
 
 export const ACTIVITY_EVENT = "approve-bot://activity";
 export const STATUS_EVENT = "approve-bot://status-changed";
+export const GH_LOGIN_EVENT = "approve-bot://gh-login";
 
 export const api = {
   getConnectionStatus: () => invoke<ConnectionStatus>("get_connection_status"),
@@ -22,6 +24,7 @@ export const api = {
   forceCheckNow: () => invoke<void>("force_check_now"),
   searchUsers: (query: string) =>
     invoke<GhUserHint[]>("search_users", { query }),
+  startGhLogin: () => invoke<void>("start_gh_login"),
 };
 
 export function onActivity(
@@ -34,6 +37,12 @@ export function onStatusChanged(
   cb: (status: ConnectionStatus) => void,
 ): Promise<UnlistenFn> {
   return listen<ConnectionStatus>(STATUS_EVENT, (e) => cb(e.payload));
+}
+
+export function onGhLoginProgress(
+  cb: (progress: GhLoginProgress) => void,
+): Promise<UnlistenFn> {
+  return listen<GhLoginProgress>(GH_LOGIN_EVENT, (e) => cb(e.payload));
 }
 
 export function openExternal(url: string): Promise<void> {
