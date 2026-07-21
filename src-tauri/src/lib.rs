@@ -41,6 +41,10 @@ pub fn run() {
             None,
         ))
         .setup(|app| {
+            // Menu-bar–only app: hide the Dock icon, keep the tray icon.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             let config_dir = app
                 .path()
                 .app_config_dir()
