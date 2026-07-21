@@ -12,7 +12,6 @@ export function SettingsPanel({ value, onChange }: Props) {
 
   return (
     <div className="panel">
-      <h2>Settings</h2>
       <label className="toggle">
         <input
           type="checkbox"

@@ -44,18 +44,21 @@ async fn run_loop(app: AppHandle, state: Arc<AppState>) {
 }
 
 pub async fn try_connect(app: &AppHandle, state: &Arc<AppState>) {
-    let token_result = tokio::task::spawn_blocking(crate::auth::fetch_gh_token)
-        .await
-        .ok()
-        .and_then(|r| r.ok());
-
-    let Some(token) = token_result else {
-        let status = ConnectionStatus::disconnected(
-            "Could not fetch token from gh CLI. Run `gh auth login`.",
-        );
-        *state.status.lock().await = status.clone();
-        let _ = app.emit(STATUS_EVENT, &status);
-        return;
+    let token = match tokio::task::spawn_blocking(crate::auth::fetch_gh_token).await {
+        Ok(Ok(t)) => t,
+        Ok(Err(e)) => {
+            let status = ConnectionStatus::disconnected(e.to_string());
+            *state.status.lock().await = status.clone();
+            let _ = app.emit(STATUS_EVENT, &status);
+            return;
+        }
+        Err(e) => {
+            let status =
+                ConnectionStatus::disconnected(format!("token fetch task panicked: {e}"));
+            *state.status.lock().await = status.clone();
+            let _ = app.emit(STATUS_EVENT, &status);
+            return;
+        }
     };
 
     let client = GitHubClient::new(token.clone());

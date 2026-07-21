@@ -6,6 +6,14 @@ use serde::{Deserialize, Serialize};
 const API: &str = "https://api.github.com";
 const UA: &str = "approve-bot/0.1.0";
 
+/// Default approval comment used when the user leaves the approval message blank.
+/// GitHub comments only render images from public URLs, so this points at the
+/// app icon committed to the public repo (rendered at 32x32 via HTML <img>).
+const DEFAULT_APPROVE_BODY: &str = concat!(
+    "<img src=\"https://raw.githubusercontent.com/jinseopleee/approve-bot/main/src-tauri/icons/32x32.png\" ",
+    "width=\"32\" height=\"32\" alt=\"따봉\" /> 따봉"
+);
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GhUser {
     pub login: String,
@@ -189,9 +197,15 @@ impl GitHubClient {
         let url = format!("{API}/repos/{owner}/{repo}/pulls/{number}/reviews");
         let mut payload = serde_json::Map::new();
         payload.insert("event".into(), serde_json::Value::String("APPROVE".into()));
-        if let Some(b) = body.filter(|s| !s.trim().is_empty()) {
-            payload.insert("body".into(), serde_json::Value::String(b.to_string()));
-        }
+        // Fall back to the default "따봉" comment when no message is configured.
+        let comment = match body {
+            Some(b) if !b.trim().is_empty() => b,
+            _ => DEFAULT_APPROVE_BODY,
+        };
+        payload.insert(
+            "body".into(),
+            serde_json::Value::String(comment.to_string()),
+        );
         let resp = self
             .http
             .post(&url)

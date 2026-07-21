@@ -50,7 +50,10 @@ export function ConnectionStatus() {
       const err = (s.last_error ?? "").toLowerCase();
       const needsLogin =
         !s.connected &&
-        (err.includes("gh cli") || err.includes("gh auth") || err.includes("not authenticated"));
+        (err.includes("gh cli") ||
+          err.includes("gh auth") ||
+          err.includes("not authenticated") ||
+          err.includes("sign in"));
       if (needsLogin) {
         await api.startGhLogin();
       }

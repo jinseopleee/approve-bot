@@ -54,7 +54,8 @@ pub async fn start(app: AppHandle, state: Arc<AppState>) -> Result<()> {
 async fn run(app: &AppHandle) -> Result<()> {
     let _ = app.emit(PROGRESS_EVENT, &GhLoginProgress::Started);
 
-    let mut child = Command::new("gh")
+    let gh = crate::auth::resolve_gh()?;
+    let mut child = Command::new(&gh)
         .args([
             "auth",
             "login",
@@ -69,9 +70,7 @@ async fn run(app: &AppHandle) -> Result<()> {
         .stderr(Stdio::piped())
         .kill_on_drop(true)
         .spawn()
-        .map_err(|e| {
-            anyhow!("failed to spawn `gh`: {e}. Install GitHub CLI from https://cli.github.com/.")
-        })?;
+        .map_err(|e| anyhow!("failed to spawn `{}`: {e}", gh.display()))?;
 
     let stdout = child.stdout.take().expect("stdout piped");
     let stderr = child.stderr.take().expect("stderr piped");
