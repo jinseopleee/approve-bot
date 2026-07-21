@@ -281,6 +281,24 @@ ul.list li {
   color: var(--text);
 }
 
+.wake-floater {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  z-index: 300;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: transform 1s ease-in-out;
+  will-change: transform;
+}
+.wake-floater:hover {
+  filter: brightness(1.1);
+}
+
 .logo-flash {
   position: fixed;
   inset: 0;

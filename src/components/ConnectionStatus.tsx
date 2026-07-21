@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { api, onGhLoginProgress, onStatusChanged } from "../lib/tauri";
 import type { ConnectionStatus as Status } from "../lib/types";
 
-export function ConnectionStatus() {
+interface Props {
+  onWakeUp: () => void;
+}
+
+export function ConnectionStatus({ onWakeUp }: Props) {
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
@@ -112,6 +116,7 @@ export function ConnectionStatus() {
           </button>
         )}
         <button onClick={() => api.forceCheckNow()}>Check now</button>
+        <button onClick={onWakeUp}>Wake up</button>
       </div>
 
       {signingIn && (

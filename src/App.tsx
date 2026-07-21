@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import logoUrl from "./assets/logo.png";
 import angSfx from "./assets/ang.mp3";
+import cheerupUrl from "./assets/cheerup_song.mp3";
 import { ConnectionStatus } from "./components/ConnectionStatus";
 import { RepositoriesPanel } from "./components/RepositoriesPanel";
 import { AuthorsPanel } from "./components/AuthorsPanel";
@@ -31,61 +32,66 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [logoFlash, setLogoFlash] = useState(false);
 
-  // Preload & decode the sound up front so playback is instant on click,
-  // with no first-play network/decode latency (Web Audio API).
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const angBufferRef = useRef<AudioBuffer | null>(null);
+  // "Wake up": play the cheer-up song while a floating icon drifts across the
+  // window. The song can only be stopped by clicking that floating icon.
+  const [wakeActive, setWakeActive] = useState(false);
+  const [wakePos, setWakePos] = useState({ x: 0, y: 0 });
+  const cheerup = useMemo(() => new Audio(cheerupUrl), []);
+
+  // While active, drift the icon to a fresh random spot on an interval; the CSS
+  // transition floats it there smoothly (no rotation).
+  useEffect(() => {
+    if (!wakeActive) return;
+    const ICON = 72;
+    const move = () => {
+      setWakePos({
+        x: Math.random() * Math.max(0, window.innerWidth - ICON),
+        y: Math.random() * Math.max(0, window.innerHeight - ICON),
+      });
+    };
+    move();
+    const id = setInterval(move, 1000);
+    return () => clearInterval(id);
+  }, [wakeActive]);
 
   useEffect(() => {
-    const Ctx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    audioCtxRef.current = ctx;
-    let cancelled = false;
-    fetch(angSfx)
-      .then((r) => r.arrayBuffer())
-      .then((buf) => ctx.decodeAudioData(buf))
-      .then((decoded) => {
-        if (!cancelled) angBufferRef.current = decoded;
-      })
-      .catch(() => {});
-    // Reopening the window from the tray marks the page visible again; resume
-    // the context proactively so the first logo click plays without delay.
-    const onVisible = () => {
-      if (document.visibilityState === "visible" && ctx.state !== "running") {
-        void ctx.resume();
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      cancelled = true;
-      document.removeEventListener("visibilitychange", onVisible);
-      void ctx.close();
-    };
+    const onEnded = () => setWakeActive(false);
+    cheerup.addEventListener("ended", onEnded);
+    return () => cheerup.removeEventListener("ended", onEnded);
+  }, [cheerup]);
+
+  const startWakeUp = useCallback(() => {
+    // After a song plays to the end the element is left "ended"; a plain
+    // currentTime=0 + play() can start from the old end position on the first
+    // click (firing "ended" again → no sound). load() resets it to the start
+    // and clears the ended flag so a single press always restarts the song.
+    cheerup.load();
+    void cheerup.play().catch(() => {});
+    setWakeActive(true);
+  }, [cheerup]);
+
+  const stopWakeUp = useCallback(() => {
+    cheerup.pause();
+    cheerup.currentTime = 0;
+    setWakeActive(false);
+  }, [cheerup]);
+
+  // Short click SFX for the logo. Uses a cloned HTMLMediaElement per click
+  // rather than the Web Audio API: on WKWebView an AudioContext gets
+  // interrupted whenever another element (the Wake-up song) plays or the
+  // window is hidden to the tray, which silenced this sound. A fresh cloned
+  // element always plays from the start, overlaps cleanly on rapid clicks,
+  // and is unaffected by the song's playback.
+  const ang = useMemo(() => {
+    const a = new Audio(angSfx);
+    a.preload = "auto";
+    return a;
   }, []);
 
   const playAng = useCallback(() => {
-    const ctx = audioCtxRef.current;
-    const buffer = angBufferRef.current;
-    if (!ctx || !buffer) return;
-    const fire = () => {
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      src.connect(ctx.destination);
-      src.start(0);
-    };
-    // WKWebView suspends (or "interrupts") the AudioContext while the window
-    // is hidden to the tray. Resume on ANY non-running state (the click is a
-    // user gesture) and play only once it's actually running again.
-    if (ctx.state === "running") {
-      fire();
-    } else {
-      ctx.resume().then(fire).catch(() => {});
-    }
-  }, []);
+    const clip = ang.cloneNode(true) as HTMLAudioElement;
+    void clip.play().catch(() => {});
+  }, [ang]);
 
   useEffect(() => {
     api
@@ -143,7 +149,7 @@ export default function App() {
               requestAnimationFrame(() => setLogoFlash(true));
             }}
           />
-          <ConnectionStatus />
+          <ConnectionStatus onWakeUp={startWakeUp} />
         </div>
         <div className="header-right">
           <div className="muted">approve-bot</div>
@@ -206,6 +212,18 @@ export default function App() {
             className="logo-flash"
             style={{ backgroundImage: `url(${logoUrl})` }}
             onAnimationEnd={() => setLogoFlash(false)}
+          />,
+          document.body,
+        )}
+      {wakeActive &&
+        createPortal(
+          <img
+            className="wake-floater"
+            src={logoUrl}
+            alt="노래 멈추려면 클릭"
+            title="클릭해서 노래 멈추기"
+            style={{ transform: `translate(${wakePos.x}px, ${wakePos.y}px)` }}
+            onClick={stopWakeUp}
           />,
           document.body,
         )}
