@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import type { AppConfig } from "../lib/types";
+import { api } from "../lib/tauri";
 
 interface Props {
   value: AppConfig;
@@ -10,8 +12,42 @@ export function SettingsPanel({ value, onChange }: Props) {
     onChange({ ...value, ...p });
   }
 
+  // Launch-at-login is an OS-managed login item, not part of AppConfig, so it
+  // reflects the real system state and applies immediately (no Save needed).
+  const [autostart, setAutostart] = useState<boolean | null>(null);
+  const [autostartBusy, setAutostartBusy] = useState(false);
+
+  useEffect(() => {
+    api
+      .getAutostart()
+      .then(setAutostart)
+      .catch(() => setAutostart(false));
+  }, []);
+
+  async function toggleAutostart(enabled: boolean) {
+    setAutostartBusy(true);
+    const prev = autostart;
+    setAutostart(enabled); // optimistic
+    try {
+      await api.setAutostart(enabled);
+    } catch {
+      setAutostart(prev); // revert on failure
+    } finally {
+      setAutostartBusy(false);
+    }
+  }
+
   return (
     <div className="panel">
+      <label className="toggle">
+        <input
+          type="checkbox"
+          checked={autostart ?? false}
+          disabled={autostart === null || autostartBusy}
+          onChange={(e) => toggleAutostart(e.target.checked)}
+        />
+        컴퓨터 켜면 자동 실행
+      </label>
       <label className="toggle">
         <input
           type="checkbox"

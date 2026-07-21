@@ -4,6 +4,7 @@ use crate::poller;
 use crate::state::{ActivityEntry, AppState, ConnectionStatus};
 use std::sync::Arc;
 use tauri::{AppHandle, State};
+use tauri_plugin_autostart::ManagerExt;
 
 #[tauri::command]
 pub async fn get_connection_status(state: State<'_, Arc<AppState>>) -> Result<ConnectionStatus, String> {
@@ -62,6 +63,22 @@ pub async fn start_gh_login(
         let _ = crate::gh_login::start(app, state).await;
     });
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_autostart(app: AppHandle) -> Result<bool, String> {
+    app.autolaunch().is_enabled().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn set_autostart(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let manager = app.autolaunch();
+    if enabled {
+        manager.enable()
+    } else {
+        manager.disable()
+    }
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

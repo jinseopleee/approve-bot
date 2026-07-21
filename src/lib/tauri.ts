@@ -25,6 +25,9 @@ export const api = {
   searchUsers: (query: string) =>
     invoke<GhUserHint[]>("search_users", { query }),
   startGhLogin: () => invoke<void>("start_gh_login"),
+  getAutostart: () => invoke<boolean>("get_autostart"),
+  setAutostart: (enabled: boolean) =>
+    invoke<void>("set_autostart", { enabled }),
 };
 
 export function onActivity(
