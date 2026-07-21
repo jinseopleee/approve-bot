@@ -12,6 +12,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager, WindowEvent,
 };
+use tauri_plugin_autostart::ManagerExt;
 use tracing::warn;
 
 /// Bring the main window back to the foreground from the tray.
@@ -45,6 +46,16 @@ pub fn run() {
                 .app_config_dir()
                 .expect("could not resolve app config dir");
             std::fs::create_dir_all(&config_dir).ok();
+
+            // Launch-at-login defaults to ON, applied only on first run so a
+            // user who later turns it off is respected.
+            let autostart_marker = config_dir.join(".autostart-initialized");
+            if !autostart_marker.exists() {
+                if let Err(e) = app.autolaunch().enable() {
+                    warn!(error = %e, "failed to enable launch-at-login default");
+                }
+                let _ = std::fs::write(&autostart_marker, b"1");
+            }
 
             let cfg = match config::load(&config_dir) {
                 Ok(c) => c,
