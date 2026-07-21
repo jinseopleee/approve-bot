@@ -52,8 +52,17 @@ export default function App() {
         if (!cancelled) angBufferRef.current = decoded;
       })
       .catch(() => {});
+    // Reopening the window from the tray marks the page visible again; resume
+    // the context proactively so the first logo click plays without delay.
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && ctx.state !== "running") {
+        void ctx.resume();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
       void ctx.close();
     };
   }, []);
@@ -62,11 +71,20 @@ export default function App() {
     const ctx = audioCtxRef.current;
     const buffer = angBufferRef.current;
     if (!ctx || !buffer) return;
-    if (ctx.state === "suspended") void ctx.resume();
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(ctx.destination);
-    src.start(0);
+    const fire = () => {
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(ctx.destination);
+      src.start(0);
+    };
+    // WKWebView suspends (or "interrupts") the AudioContext while the window
+    // is hidden to the tray. Resume on ANY non-running state (the click is a
+    // user gesture) and play only once it's actually running again.
+    if (ctx.state === "running") {
+      fire();
+    } else {
+      ctx.resume().then(fire).catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
